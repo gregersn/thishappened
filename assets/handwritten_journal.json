@@ -1,0 +1,17 @@
+{
+    "background": "backgrounds/old_lined_paper_by_babybird_stock_d1f1rxb.jpg",
+    "font": "fonts/handwriting/Yahfie-Heavy.ttf",
+    "fontsize": 110,
+    "linelength": 39,
+    "linespacing": 20,
+    "pages": [
+        {
+            "start": [114, 138],
+            "lines": 22
+        },
+        {
+            "start": [2014, 138],
+            "lines": 22
+        }
+    ]
+}

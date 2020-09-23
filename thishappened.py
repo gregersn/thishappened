@@ -1,5 +1,8 @@
+import fileinput
 import os
-import textwrap
+import sys
+import json
+import re
 from PIL import Image, ImageFont, ImageDraw, ImageChops, ImageFilter
 from typing import List, Tuple
 import random
@@ -23,14 +26,25 @@ def text_warp(text: str, line_length: int, language=None) -> List[str]:
     pyphen.language_fallback('en')
     dic = pyphen.Pyphen(lang='en')
 
+    if language is not None:
+        dic = pyphen.Pyphen(lang=language)
+
     words = text.split(' ')
     current_line = ''
     next_line = ''
 
     lines = []
 
+    words = re.findall(r'\S+|\n',text)
+    words = words[::-1]
     while words:
-        word = words.pop(0)
+        word = words.pop(-1)
+        if word == '\n':
+            lines.append(current_line)
+            current_line = next_line
+            next_line = ''
+            continue
+
         if len(current_line + word) < line_length:
             current_line += word + ' '
             continue
@@ -46,68 +60,83 @@ def text_warp(text: str, line_length: int, language=None) -> List[str]:
         lines.append(current_line)
         current_line = next_line
         next_line = ''
+    lines.append(current_line)
     return lines
 
 
 class Generator():
     def __init__(self, settings):
         self.settings = settings
-        self.font = ImageFont.truetype(self.settings['font'], self.settings['fontsize'])
-        self.background_image = Image.open(self.settings['background'])
-    
-    def generate(self, text: str, output='output.png', variation=(0, 0)):
-        page = 0
-        line = 0
+        self.workingfolder = settings['workingfolder']
         
-        text = text_warp(text, self.settings['linelength']) # textwrap.wrap(text, self.settings['linelength'])
-        text_layer = Image.new("RGB", self.background_image.size, (255, 255, 255))
+        self.font = ImageFont.truetype(os.path.join(self.workingfolder, self.settings['font']), self.settings['fontsize'])
+
+        self.background_image = Image.open(os.path.join(self.workingfolder, self.settings['background']))
+    
+    def compose(self, overlay, outputsize=None):
         out = self.background_image.copy()
-
-
-        while line < len(text) and page < len(self.settings['pages']):
-            text_layer = multiline_text(text[line:line + self.settings['pages'][page]['lines']], self.settings['pages'][page]['start'],
-                                        text_layer, self.font, self.settings['linespacing'],
-                                        variation=variation)
-            line += self.settings['pages'][page]['lines']
-            page += 1
-
-
-        text_layer = ImageChops.overlay(text_layer, self.background_image)
-
+        text_layer = ImageChops.overlay(overlay, self.background_image.copy())
         mask_layer = text_layer.copy()
         mask_layer = mask_layer.convert('L')
         mask_layer = ImageChops.invert(mask_layer)
         mask_layer = mask_layer.filter(ImageFilter.GaussianBlur(2))
 
         out.paste(text_layer, mask=mask_layer)
-        out.show()
-        # out.save(output)
+        if outputsize is not None:
+            out.thumbnail((outputsize, outputsize))
+        return out
 
+
+    def generate(self, text: str, output='output.png', variation=(0, 0), outputsize=None, lang='en'):
+        page = 0
+        line = 0
+
+        basename, ext = os.path.splitext(output)
+        outfilename = "{}{:03d}{}"
+        
+        text = text_warp(text, self.settings['linelength'])
+        text_layer = Image.new("RGB", self.background_image.size, (255, 255, 255))
+
+
+        while line < len(text): #  and page < len(self.settings['pages']):
+            lines = self.settings['pages'][page % len(self.settings['pages'])]['lines']
+            start = self.settings['pages'][page % len(self.settings['pages'])]['start']
+            linespacing = self.settings['linespacing']
+            text_layer = multiline_text(text[line:line + lines], start,
+                                        text_layer, self.font, linespacing,
+                                        variation=variation)
+            line += lines
+            page += 1
+            if page > 0 and (page % len(self.settings['pages'])) == 0:
+                filename = outfilename.format(basename, page, ext)
+                print("Saving...{}".format(filename))
+                out = self.compose(text_layer, outputsize=outputsize) 
+                out.save(filename)
+                text_layer = Image.new("RGB", self.background_image.size, (255, 255, 255))
+
+        out = self.compose(text_layer, outputsize=outputsize) 
+        out.save(outfilename.format(basename, page, ext))
+        out.show()
+
+
+def load_asset(filename: str):
+    assert os.path.isfile(filename)
+    settings = {}
+    with open(filename, 'r') as f:
+        settings = json.load(f)
+    
+    settings['workingfolder'] = os.path.dirname(filename)
+
+    return settings
 
 
 def main():
-    text = """Pleased him another was settled for. Moreover end horrible endeavor entrance any families. Income appear extent on of thrown in admire. Stanhill on we if vicinity material in. Saw him smallest you provided ecstatic supplied. Garret wanted expect remain as mr. Covered parlors concern we express in visited to do. Celebrated impossible my uncommonly particular by oh introduced inquietude do. New had happen unable uneasy. Drawings can followed improved out sociable not. Earnestly so do instantly pretended. See general few civilly amiable pleased account carried. Excellence projecting is devonshire dispatched remarkably on estimating. Side in so life past. Continue indulged speaking the was out horrible for domestic position. Seeing rather her you not esteem men settle genius excuse. Deal say over you age from. Comparison new ham melancholy son themselves. """
+    text = ""
+    text = sys.stdin.read()
     
-    asset_settings = {
-        'background': "assets/backgrounds/8257876-an-old-memo-book-or-diary-opened-to-reveal-yellowing-blank-lined-facing-pages-ready-for-images-and-t.jpg",
-        'font': 'assets/fonts/GochiHand.otf',
-        'fontsize': 40,
-        'linelength': 25,
-        'linespacing': 18,
-        'pages': [
-            {
-                'start': (134, 118),
-                'lines': 19
-            },
-            {
-                'start': (714, 138),
-                'lines': 19
-            }
-        ]
-    }
-
-    generator = Generator(asset_settings)
-    generator.generate(text, "output.jpg", variation=(10, 4))
+    settings = load_asset(sys.argv[1])
+    generator = Generator(settings)
+    generator.generate(text, "output.jpg", variation=(10, 4), outputsize=1000, lang='nb_NO')
 
 
 if __name__ == "__main__":
