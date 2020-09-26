@@ -75,11 +75,11 @@ class Generator():
     
     def compose(self, overlay, outputsize=None):
         out = self.background_image.copy()
-        text_layer = ImageChops.overlay(overlay, self.background_image.copy())
+        text_layer = ImageChops.overlay(overlay, self.background_image.copy().convert('RGB'))
         mask_layer = text_layer.copy()
         mask_layer = mask_layer.convert('L')
         mask_layer = ImageChops.invert(mask_layer)
-        mask_layer = mask_layer.filter(ImageFilter.GaussianBlur(2))
+        mask_layer = mask_layer.filter(ImageFilter.GaussianBlur(1))
 
         out.paste(text_layer, mask=mask_layer)
         if outputsize is not None:
@@ -97,25 +97,30 @@ class Generator():
         text = text_warp(text, self.settings['linelength'])
         text_layer = Image.new("RGB", self.background_image.size, (255, 255, 255))
 
+        linespacing = self.settings['linespacing']
 
-        while line < len(text): #  and page < len(self.settings['pages']):
+        while line < len(text):
             lines = self.settings['pages'][page % len(self.settings['pages'])]['lines']
             start = self.settings['pages'][page % len(self.settings['pages'])]['start']
-            linespacing = self.settings['linespacing']
+            print(f"Page: {page}, start: {start}, lines {lines}")
+
             text_layer = multiline_text(text[line:line + lines], start,
                                         text_layer, self.font, linespacing,
                                         variation=variation)
             line += lines
             page += 1
-            if page > 0 and (page % len(self.settings['pages'])) == 0:
+
+            if page > 0 and (page % len(self.settings['pages'])) == 0 and line < (len(text) - 1):
                 filename = outfilename.format(basename, page, ext)
-                print("Saving...{}".format(filename))
+                print("Saving (in loop)...{}".format(filename))
                 out = self.compose(text_layer, outputsize=outputsize) 
                 out.save(filename)
                 text_layer = Image.new("RGB", self.background_image.size, (255, 255, 255))
 
-        out = self.compose(text_layer, outputsize=outputsize) 
-        out.save(outfilename.format(basename, page, ext))
+        out = self.compose(text_layer, outputsize=outputsize)
+        filename = outfilename.format(basename, page, ext)
+        print("Saving...{}".format(filename))
+        out.save(filename)
         out.show()
 
 
@@ -131,12 +136,11 @@ def load_asset(filename: str):
 
 
 def main():
-    text = ""
     text = sys.stdin.read()
     
     settings = load_asset(sys.argv[1])
     generator = Generator(settings)
-    generator.generate(text, "output.jpg", variation=(10, 4), outputsize=1000, lang='nb_NO')
+    generator.generate(text, "output.png", variation=(0, 7), outputsize=1000, lang='en')
 
 
 if __name__ == "__main__":
