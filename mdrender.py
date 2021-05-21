@@ -142,8 +142,17 @@ class MDRenderer():
             f(el)
         else:
             print(f"Unknown element: {element}")
+            logger.debug(el)
             for child in el['children']:
                 self.render_element(child)
+
+    def render_code_span(self, el):
+        logger.info("Render code span")
+        logger.debug(el)
+
+    def render_thematic_break(self, el):
+        logger.info("Render thematic break")
+        self.render_raw_text({'children': '--------------------'})
 
     def render_blank_line(self, data):
         logger.info("Render blank line")
@@ -223,3 +232,19 @@ class MDRenderer():
 
         self.position = (
             self.position[0], self.position[1] + self.font_size * (len(text) - 1))
+
+    def render_list_item(self, data):
+        logger.info("Render list item")
+        logger.debug(data)
+        for child in data['children']:
+            self.render_element(child)
+
+    def render_list(self, data):
+        logger.info("Render list")
+        logger.debug(data)
+        for idx, child in enumerate(data['children']):
+            if data['ordered']:
+                self.render_raw_text({'children': f"{idx + data['start']}. "})
+            else:
+                self.render_raw_text({'children': f"{data['bullet']} "})
+            self.render_element(child)
