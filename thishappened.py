@@ -1,20 +1,20 @@
 import os
 import json
-from typing import List, Tuple
+from typing import Any, Dict, Union
 import click
 import marko
 from marko.ast_renderer import ASTRenderer
 import frontmatter
 import logging
 
-from mdrender import MDRenderer, PageStyle
+from thishappened.renderer.mdrenderer import MDRenderer, PageStyle
 
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
 logger = logging.getLogger(__file__)
 
 
-def load_asset(filename: str):
+def load_asset(filename: str) -> Dict[str, Any]:
     assert os.path.isfile(filename), filename
     settings = {}
     with open(filename, 'r') as f:
@@ -31,11 +31,14 @@ def main(markdown: str):
     assert os.path.isfile(markdown)
 
     data = frontmatter.load(markdown)
-    if data.get('settings', None):
-        settings = load_asset('assets/' + data['settings'])
+    settings_file: Union[str, None] = data.get('settings', None)
+    if isinstance(settings_file, str):
+        settings = load_asset('assets/' + settings_file)
     else:
-        settings = {}
+        settings: Dict[str, Any] = dict(data)
     text = data.content
+
+    assert isinstance(settings, dict)
     style = PageStyle(settings)
 
     MDRenderer.style = style
@@ -45,7 +48,7 @@ def main(markdown: str):
 
     style = PageStyle(settings)
     renderer = MDRenderer(text, "output.png", variation=(0, 0),
-                          outputsize=(1600, 2400), lang='en', settings=settings)
+                          outputsize=(500, 1200), lang='en', style=style)
     renderer.render()
 
 

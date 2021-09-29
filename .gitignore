@@ -2,3 +2,5 @@ assets/
 *.jpg
 *.png
 .vscode/
+*.pyc
+__pycache__/
