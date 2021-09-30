@@ -25,8 +25,9 @@ class MDRenderer():
                  lang: str = 'en',
                  style: PageStyle = PageStyle()):
         self._input = input
-        self._page = 0
-        self._line = 0
+        self._page: int = 0
+        self._column: int = 0
+        self._line: int = 0
         self._output = output
         self._variation = variation
         self._outputsize = outputsize
@@ -57,25 +58,32 @@ class MDRenderer():
         basename, ext = os.path.splitext(self._output)
         outfilename = "{}{:03d}{}"
 
-        page = 1
-        # line = 1
-        self.position = self.style.pages[page - 1]['start']
+        self.position = self.style.pages[self._page - 1]['start']
 
         assert self._input['element'] == 'document'
 
-        self.canvas.start_page()
-        self.canvas.font(self.font)
-        self.canvas.translate(self.style.pages[page - 1]['start'])
+        self.start_page()
         for el in self._input['children']:
             self.render_element(el)
 
         self.canvas.end_page()
         out = self.canvas.get()
 
-        filename = outfilename.format(basename, page, ext)
+        filename = outfilename.format(basename, self._page, ext)
         print("Saving...{}".format(filename))
         out.save(filename)
         # out.show()
+
+    def start_page(self):
+        self.canvas.start_page()
+        self.canvas.font(self.font)
+        self.canvas.translate(self.style.pages[self._page - 1]['start'])
+
+    def end_column(self):
+        pass
+
+    def end_page(self):
+        pass
 
     def render_element(self, el: MDElement):
         element = el['element']

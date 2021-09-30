@@ -63,4 +63,4 @@ class CodeSpanData(TypedDict):
 
 MDElement = Union[RawTextData, HeadingData,
                   BlankLineData, EmphasisData, StrongEmphasisData,
-                  ListItemData, ListData, ParagraphData, LineBreakData]
+                  ListItemData, ListData, ParagraphData, LineBreakData, CodeSpanData]

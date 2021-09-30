@@ -35,9 +35,11 @@ class Canvas:
         return self._page
         # out = self.compose(self._current_page, outputsize=self._outputsize)
 
-    def text(self, data: str,  linewidth: int, justify: str = 'left', max_spacing=1.6):
+    def text(self, data: str,  linewidth: int, justify: str = 'left', max_spacing: float = 1.6):
+        if not data:
+            return
         text_size: Tuple[int, int] = self._font.getsize(data)
-        spacer = linewidth[0] / text_size[0]
+        spacer = linewidth / text_size[0]
         if spacer > 1.0 and spacer < max_spacing:
             for c in data:
                 self._ctx.text(self._pos, c, font=self._font, fill=self.fill)

@@ -18,8 +18,10 @@ class PageStyle:
     font = "/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf"
     font_bold = "/usr/share/fonts/truetype/ttf-bitstream-vera/VeraBd.ttf"
     font_italic = "/usr/share/fonts/truetype/ttf-bitstream-vera/VeraIt.ttf"
-    linelength = 80
+    linelength = 20
     linespacing = 0
+    margin: Tuple[int, int, int, int] = (10, 10, 10, 10)
+    columns: int = 1
     pages: List[Page] = [
         {
             "start": (64, 100),
@@ -33,8 +35,8 @@ class PageStyle:
     def __init__(self, d: Mapping[str, Any] = {}):
         self.__dict__.update(**d)
 
-    def calculate_line_width(self, text_renderer: Callable[[str], int]):
+    def calculate_line_width(self, text_renderer: Callable[[str], Tuple[int, int]]) -> int:
         self._line_width = text_renderer(
-            "A" * self.linelength)
+            "A" * self.linelength)[0]
 
         return self._line_width
