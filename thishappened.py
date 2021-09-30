@@ -48,7 +48,7 @@ def main(markdown: str):
 
     style = PageStyle(settings)
     renderer = MDRenderer(text, "output.png", variation=(0, 0),
-                          outputsize=(500, 1200), lang='en', style=style)
+                          outputsize=(1500, 400), lang='en', style=style)
     renderer.render()
 
 

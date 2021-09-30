@@ -58,7 +58,7 @@ class MDRenderer():
         basename, ext = os.path.splitext(self._output)
         outfilename = "{}{:03d}{}"
 
-        self.position = self.style.pages[self._page - 1]['start']
+        self.position = (self.style.margin[0], self.style.margin[1])
 
         assert self._input['element'] == 'document'
 
@@ -77,12 +77,19 @@ class MDRenderer():
     def start_page(self):
         self.canvas.start_page()
         self.canvas.font(self.font)
-        self.canvas.translate(self.style.pages[self._page - 1]['start'])
+        self.position = self.style.margin[0:2]
 
     def end_column(self):
-        pass
+        logger.debug("Ending column")
+        if self._column == self.style.columns:
+            self.end_page()
+        else:
+            self._column += 1
+            self.position = (self.style.margin[0] + self._column * (self.line_width + self.style.column_spacing),
+                             self.style.margin[1])
 
     def end_page(self):
+        logger.debug("Ending page")
         pass
 
     def render_element(self, el: MDElement):
@@ -114,12 +121,19 @@ class MDRenderer():
         logger.debug(f"Lineheight = {lh}")
         self.render_line_break({'element': 'line_break', 'soft': False})
 
+    def translate(self, offset: Tuple[int, int]):
+        self.position = (self.position[0] +
+                         offset[0], self.position[1] + offset[1])
+
+    def move_to(self, pos: Tuple[int, int]):
+        self.position = pos
+
     def render_line_break(self, data: LineBreakData):
         logger.info("Render line break")
         lh = self.font.getsize('A')[1]
         if not data['soft']:
-            self.canvas.translate(
-                (-self.canvas.x + self.style.pages[0]['start'][0], lh))
+            self.move_to(
+                (self.style.margin[0] + self._column * (self.line_width + self.style.column_spacing), self.position[1] + lh))
 
     def render_paragraph(self, data: ParagraphData):
         logger.info("Render paragraph")
@@ -178,15 +192,21 @@ class MDRenderer():
         text = text_warp(data['children'], self.style.linelength *
                          self.style.text_size // self.font_size)
 
-        self.canvas.text(text[0], self.line_width)
+        self.line(text[0])
 
         # If there is more than one line, we need some line breaks and stuff.
         for line in text[1:]:
             self.render_line_break({'element': 'line_break', 'soft': False})
-            self.canvas.text(line, self.line_width)
+            self.line(line)
 
-        self.position = (
-            self.position[0], self.position[1] + self.font_size * (len(text) - 1))
+    def line(self, text: str):
+        logger.debug(f"Add text line: {text}, {self.position}")
+        self.position = self.canvas.text(
+            text, self.position, self.line_width, justify=self.style.justify)
+
+        if (self.position[1] + self.font_size * 2 + self.style.margin[3]) >= self._outputsize[1]:
+            logger.debug("Bottom of page reached")
+            self.end_column()
 
     def render_list_item(self, data: ListItemData):
         logger.info("Render list item")

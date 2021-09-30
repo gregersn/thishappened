@@ -1,18 +1,24 @@
-from typing import NoReturn, Optional, Tuple
+from typing import Literal, NoReturn, Optional, Tuple, Union
 from PIL import Image, ImageDraw, ImageChops, ImageFilter
 from PIL.ImageFont import FreeTypeFont
+from enum import Enum, auto
+
+
+class Justify(Enum):
+    Left: auto()
+    Right: auto()
+    Center: auto()
+    Block: auto()
 
 
 class Canvas:
     _page: Image.Image
     _background: Image.Image
     _ctx: ImageDraw.ImageDraw
-    _pos: Tuple[int, int]
     fill: Tuple[int, int, int]
 
     def __init__(self, size: Tuple[int, int]):
         self._size = size
-        self._pos = (0, 0)
         self.fill = (0, 0, 0)
 
     def font(self, font: FreeTypeFont):
@@ -35,29 +41,36 @@ class Canvas:
         return self._page
         # out = self.compose(self._current_page, outputsize=self._outputsize)
 
-    def text(self, data: str,  linewidth: int, justify: str = 'left', max_spacing: float = 1.6):
+    def text(self, data: str,  position: Tuple[int, int], linewidth: int, justify: Justify = 'left', max_spacing: float = 1.6):
         if not data:
-            return
+            return position
         text_size: Tuple[int, int] = self._font.getsize(data)
-        spacer = linewidth / text_size[0]
-        if spacer > 1.0 and spacer < max_spacing:
-            for c in data:
-                self._ctx.text(self._pos, c, font=self._font, fill=self.fill)
-                self.translate((self._font.getsize(c)[0] * spacer, 0))
+
+        if justify == 'block':
+            spacer = linewidth / text_size[0]
+            if spacer > 1.0 and spacer < max_spacing:
+                for c in data:
+                    self._ctx.text(
+                        position, c, font=self._font, fill=self.fill)
+                    position = (position[0] + self._font.getsize(c)
+                                [0] * spacer, position[1])
+            else:
+                self._ctx.text(position, data, font=self._font, fill=self.fill)
+                position = (position[0] + text_size[0], position[1])
+        elif justify == 'right':
+            self._ctx.text((position[0] + linewidth - text_size[0],
+                           position[1]), data, font=self._font, fill=self.fill)
+            position = (position[0] + text_size[0], position[1])
+
+        elif justify == 'center':
+            self._ctx.text((position[0] + (linewidth - text_size[0]) // 2,
+                           position[1]), data, font=self._font, fill=self.fill)
+            position = (position[0] + text_size[0], position[1])
         else:
-            self._ctx.text(self._pos, data, font=self._font, fill=self.fill)
-            self.translate((text_size[0], 0))
+            self._ctx.text(position, data, font=self._font, fill=self.fill)
+            position = (position[0] + text_size[0], position[1])
 
-    def translate(self, offset: Tuple[int, int]):
-        self._pos = (self._pos[0] + offset[0], self._pos[1] + offset[1])
-
-    @property
-    def x(self):
-        return self._pos[0]
-
-    @property
-    def y(self):
-        return self._pos[1]
+        return position
 
     def compose(self, overlay: Image.Image, outputsize: Optional[Tuple[int, int]] = None) -> Image.Image:
         out = self.background_image.copy()

@@ -44,7 +44,7 @@ def text_warp(text: str, line_length: int, language: Optional[str] = None) -> Li
         else:
             next_line += word + ' '
 
-        lines.append(current_line)
+        lines.append(current_line.strip())
         current_line = next_line
         next_line = ''
     lines.append(current_line)

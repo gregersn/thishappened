@@ -20,14 +20,11 @@ class PageStyle:
     font_italic = "/usr/share/fonts/truetype/ttf-bitstream-vera/VeraIt.ttf"
     linelength = 20
     linespacing = 0
+    column_spacing = 32
+    justify = 'left'
     margin: Tuple[int, int, int, int] = (10, 10, 10, 10)
     columns: int = 1
-    pages: List[Page] = [
-        {
-            "start": (64, 100),
-            "lines": 60
-        }
-    ]
+    lines: int = 60
     color = (20, 20, 10)
 
     _line_width: int
