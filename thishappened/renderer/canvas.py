@@ -3,12 +3,16 @@ from PIL import Image, ImageDraw, ImageChops, ImageFilter
 from PIL.ImageFont import FreeTypeFont
 from enum import Enum, auto
 
+from logging import getLogger
+
+logger = getLogger(__name__)
+
 
 class Justify(Enum):
-    Left: auto()
-    Right: auto()
-    Center: auto()
-    Block: auto()
+    Left = auto()
+    Right = auto()
+    Center = auto()
+    Block = auto()
 
 
 class Canvas:
@@ -41,28 +45,36 @@ class Canvas:
         return self._page
         # out = self.compose(self._current_page, outputsize=self._outputsize)
 
-    def text(self, data: str,  position: Tuple[int, int], linewidth: int, justify: Justify = 'left', max_spacing: float = 1.6):
+    def text(self,
+             data: str,
+             position: Tuple[int, int],
+             linewidth: int,
+             justify: Justify = Justify.Left,
+             max_spacing: float = 1.6, variation: Tuple[float, float] = (0.0, 0.0)):
         if not data:
             return position
         text_size: Tuple[int, int] = self._font.getsize(data)
 
-        if justify == 'block':
+        logger.debug(
+            f"Adding text of size {text_size} to line of size {linewidth}")
+
+        if justify == Justify.Block:
             spacer = linewidth / text_size[0]
-            if spacer > 1.0 and spacer < max_spacing:
+            if spacer > 1.0:
                 for c in data:
                     self._ctx.text(
                         position, c, font=self._font, fill=self.fill)
                     position = (position[0] + self._font.getsize(c)
-                                [0] * spacer, position[1])
+                                [0] * min(spacer, max_spacing), position[1])
             else:
                 self._ctx.text(position, data, font=self._font, fill=self.fill)
                 position = (position[0] + text_size[0], position[1])
-        elif justify == 'right':
+        elif justify == Justify.Right:
             self._ctx.text((position[0] + linewidth - text_size[0],
                            position[1]), data, font=self._font, fill=self.fill)
             position = (position[0] + text_size[0], position[1])
 
-        elif justify == 'center':
+        elif justify == Justify.Center:
             self._ctx.text((position[0] + (linewidth - text_size[0]) // 2,
                            position[1]), data, font=self._font, fill=self.fill)
             position = (position[0] + text_size[0], position[1])

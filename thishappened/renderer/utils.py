@@ -5,11 +5,11 @@ from typing import Optional, List
 
 import logging
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger("thishappened")
 
 
 def text_warp(text: str, line_length: int, language: Optional[str] = None) -> List[str]:
-    logger.info(f"Wrapping text at {line_length} length")
+    logger.debug(f"Wrapping text at {line_length} length")
     pyphen.language_fallback('en')
     dic = pyphen.Pyphen(lang='en')
 

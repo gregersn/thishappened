@@ -1,13 +1,27 @@
 import os
 import json
-from typing import Any, Dict, Union
+from typing import Any, Dict, Match, Union
 import click
 import marko
 from marko.ast_renderer import ASTRenderer
+from marko.inline import InlineElement
 import frontmatter
 import logging
 
 from thishappened.renderer.mdrenderer import MDRenderer, PageStyle
+
+
+class StyleCommand(InlineElement):
+    pattern = r'\[\[\!(\w+):\s+(\w+)\]\][\r\n]*'
+
+    def __init__(self, match:  Match[str]):
+        logger.debug("Found a stylecommand")
+        self.property = match.group(1)
+        self.value = match.group(2)
+
+
+class Styling:
+    elements = [StyleCommand]
 
 
 logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
@@ -43,12 +57,12 @@ def main(markdown: str):
 
     MDRenderer.style = style
 
-    m = marko.Markdown(renderer=ASTRenderer)
+    m = marko.Markdown(renderer=ASTRenderer, extensions=[Styling])
     text = m.convert(data.content)
 
     style = PageStyle(settings)
-    renderer = MDRenderer(text, "output.png", variation=(0, 0),
-                          outputsize=(1500, 400), lang='en', style=style)
+    renderer = MDRenderer(text, "output.png",
+                          lang='en', style=style)
     renderer.render()
 
 
