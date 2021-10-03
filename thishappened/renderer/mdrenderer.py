@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from PIL import Image, ImageFont
 
 from typing import Any, Literal, Tuple, TypedDict, cast
@@ -35,7 +36,7 @@ class MDRenderer():
     canvas: Canvas
 
     def __init__(self, input: DocumentData,
-                 output: str = 'output.png',
+                 output: Path = Path('output.png'),
                  # outputsize: Tuple[int, int] = (800, 1200),
                  lang: str = 'en',
                  style: PageStyle = PageStyle()):
@@ -43,7 +44,7 @@ class MDRenderer():
         self._page: int = 0
         self._column: int = 0
         self._line: int = 0
-        self._output = output
+        self._output: Path = output
         self._lang = lang
         self.style = style
         self.position: Tuple[int, int] = (0, 0)
@@ -72,16 +73,15 @@ class MDRenderer():
         #     "RGB", self.background_image.size, (255, 255, 255))
 
     def init_fonts(self):
-        t_font = ImageFont.truetype(os.path.join(
-            'assets', self.style.font), self.style.text_size)
+        t_font = ImageFont.truetype(
+            str(self.style.get_font()), self.style.text_size)
 
         self.style.size_fit(t_font.getsize)
         logger.debug(f"Adjusting main font size to {self.style.text_size}")
-        self.font = ImageFont.truetype(os.path.join(
-            'assets', self.style.font), self.style.text_size)
+        self.font = ImageFont.truetype(
+            str(self.style.get_font()), self.style.text_size)
 
     def render(self):
-        basename, ext = os.path.splitext(self._output)
         outfilename = "{}{:03d}{}"
 
         logger.debug(
@@ -96,9 +96,13 @@ class MDRenderer():
         self.canvas.end_page()
         out = self.canvas.get()
 
-        filename = outfilename.format(basename, self._page, ext)
-        print("Saving...{}".format(filename))
-        out.save(filename)
+        if self._page > 0:
+            filename = outfilename.format(
+                self._output.stem, self._page, self._output.suffix)
+            print("Saving...{}".format(filename))
+            out.save(filename)
+        else:
+            out.save(self._output)
         # out.show()
 
     def start_page(self):
@@ -191,9 +195,8 @@ class MDRenderer():
         logger.info("Render emphasis")
         prev_font = self.font
 
-        if self.style.font_italic is not None:
-            self.font = ImageFont.truetype(os.path.join(
-                'assets', self.style.font_italic), self.font_size)
+        self.font = ImageFont.truetype(
+            str(self.style.get_font('italic')), self.font_size)
 
         for child in data['children']:
             self.render_element(child)
@@ -204,9 +207,8 @@ class MDRenderer():
         logger.info("Render strong emphasis")
         prev_font = self.font
 
-        if self.style.font_bold is not None:
-            self.font = ImageFont.truetype(os.path.join(
-                'assets', self.style.font_bold), self.font_size)
+        self.font = ImageFont.truetype(
+            self.style.get_font('bold'), self.font_size)
 
         for child in data['children']:
             self.render_element(child)
@@ -219,8 +221,8 @@ class MDRenderer():
         self.font_size = self.style.header_size[level - 1]
         prev_font = self.font
 
-        self.font = ImageFont.truetype(os.path.join(
-            'assets', self.style.font), self.font_size)
+        self.font = ImageFont.truetype(
+            str(self.style.get_font()), self.font_size)
 
         for child in data['children']:
             self.render_element(child)

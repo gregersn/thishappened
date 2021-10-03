@@ -2,6 +2,7 @@ import os
 import json
 from typing import Any, Dict, Match, Union
 import click
+from pathlib import Path
 import marko
 from marko.ast_renderer import ASTRenderer
 from marko.inline import InlineElement
@@ -40,11 +41,9 @@ def load_asset(filename: str) -> Dict[str, Any]:
 
 
 @click.command()
-@click.argument('markdown')
-def main(markdown: str):
-    assert os.path.isfile(markdown)
-
-    data = frontmatter.load(markdown)
+@click.argument('markdown', type=click.Path(path_type=Path, exists=True))
+def main(markdown: Path):
+    data = frontmatter.load(str(markdown.resolve()))
     settings_file: Union[str, None] = data.get('settings', None)
     if isinstance(settings_file, str):
         settings = load_asset('assets/' + settings_file)
@@ -61,7 +60,7 @@ def main(markdown: str):
     text = m.convert(data.content)
 
     style = PageStyle(settings)
-    renderer = MDRenderer(text, "output.png",
+    renderer = MDRenderer(text, markdown.stem + ".png",
                           lang='en', style=style)
     renderer.render()
 

@@ -1,5 +1,6 @@
 from enum import Enum
 import logging
+from pathlib import Path
 from typing import Callable, Text, TypedDict, List, Mapping, Any, Tuple
 
 
@@ -76,3 +77,17 @@ class PageStyle:
     @property
     def header_size(self):
         return [int(hs * self._text_size_multiplier) for hs in self._header_size]
+
+    def get_font(self, variant: str = "") -> Path:
+        if variant == 'bold':
+            f = Path(self.font_bold)
+        elif variant == 'italic':
+            f = Path(self.font_italic)
+        else:
+            f = Path(self.font)
+
+        if not f.exists():
+            f = Path(__file__).parent.parent.parent / "assets" / f
+            assert f.exists(), str(f)
+
+        return f
