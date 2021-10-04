@@ -34,7 +34,7 @@ class PageStyle:
     font = "/usr/share/fonts/truetype/ttf-bitstream-vera/Vera.ttf"
     font_bold = "/usr/share/fonts/truetype/ttf-bitstream-vera/VeraBd.ttf"
     font_italic = "/usr/share/fonts/truetype/ttf-bitstream-vera/VeraIt.ttf"
-    linelength = 20
+    linelength = 80
     linespacing = 0
     column_spacing = 32
     variation: Tuple[float, float] = (0.0, 0.0)

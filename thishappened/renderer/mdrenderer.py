@@ -55,8 +55,8 @@ class MDRenderer():
         self.line_width = self.style.calculate_line_width(self.font.getsize)
 
         if self.style.background is not None:
-            self.background_image = Image.open(os.path.join(
-                'assets', self.style.background))
+            self.background_image = Image.open(
+                Path(self.style.background).expanduser())
             t = fill_in(self.background_image.size, self.style.outputsize)
             logger.debug(t)
             self.background_image = self.background_image.resize(
@@ -142,6 +142,9 @@ class MDRenderer():
                     self.render_element(child)
 
     def render_style_command(self, el: StyleCommand):
+        if el['property'] == 'justify':
+            # value = Justify[el['value']]
+            self.style.justify = el['value']
         if el['property'] == 'columns':
             value = int(el['value'], 10)
             logger.debug(f"Setting column count to {value}")
@@ -208,7 +211,7 @@ class MDRenderer():
         prev_font = self.font
 
         self.font = ImageFont.truetype(
-            self.style.get_font('bold'), self.font_size)
+            str(self.style.get_font('bold')), self.font_size)
 
         for child in data['children']:
             self.render_element(child)
