@@ -1,4 +1,4 @@
-from typing import Literal, NoReturn, Optional, Tuple, Union
+from typing import NoReturn, Optional, Tuple
 from PIL import Image, ImageDraw, ImageChops, ImageFilter
 from PIL.ImageFont import FreeTypeFont
 from enum import Enum, auto

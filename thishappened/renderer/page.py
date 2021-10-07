@@ -1,7 +1,7 @@
 from enum import Enum
 import logging
 from pathlib import Path
-from typing import Callable, Text, TypedDict, List, Mapping, Any, Tuple
+from typing import Callable, TypedDict, Mapping, Any, Tuple
 
 
 logger = logging.getLogger("pagestyle")
