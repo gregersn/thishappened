@@ -1,14 +1,16 @@
 import re
 import pyphen
 
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 import logging
 
 logger = logging.getLogger("thishappened")
 
 
-def text_warp(text: str, line_length: int, language: Optional[str] = None) -> List[str]:
+def text_warp(text: str,
+              line_length: int,
+              language: Optional[str] = None) -> List[str]:
     logger.debug(f"Wrapping text at {line_length} length")
     pyphen.language_fallback('en')
     dic = pyphen.Pyphen(lang='en')
@@ -49,3 +51,39 @@ def text_warp(text: str, line_length: int, language: Optional[str] = None) -> Li
         next_line = ''
     lines.append(current_line)
     return lines
+
+
+def text_grab(text: str,
+              line_length: int,
+              language: Optional[str] = None) -> Tuple[str, Optional[str]]:
+    logger.debug(f"Wrapping text at {line_length} length")
+    pyphen.language_fallback('en')
+    dic = pyphen.Pyphen(lang='en')
+
+    if language is not None:
+        dic = pyphen.Pyphen(lang=language)
+
+    current_line: str = ''
+
+    words = re.findall(r'\S+|\n', text)
+    words = words[::-1]
+    while words:
+        word = words.pop(-1)
+        if word == '\n':
+            return current_line, " ".join(words[::-1])
+
+        if len(current_line + word) <= line_length:
+            current_line += word + ' '
+            continue
+
+        split = dic.wrap(word, line_length - len(current_line))
+
+        if split is not None:
+            current_line += split[0] + ' '
+            words = [split[1]] + words[::-1]
+        else:
+            words = [word] + words[::-1]
+
+        return current_line.strip(), " ".join(words)
+
+    return current_line.strip(), None

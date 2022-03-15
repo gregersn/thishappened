@@ -50,9 +50,22 @@ class Canvas:
              position: Tuple[int, int],
              linewidth: int,
              justify: Justify = Justify.Left,
-             max_spacing: float = 1.6, variation: Tuple[float, float] = (0.0, 0.0)):
+             max_spacing: float = 1.6,
+             variation: Tuple[float, float] = (0.0, 0.0)):
+        """Write text on canvas.
+
+        data: The string to write.
+        position: Where to place text on canvas.
+        linewidth: How wide a line is in pixels.
+        justify: Left, Right, Center or Block
+        max_spacing: The maximum amount of extra space for block justification.
+        variation: Some random offset to add to letters.
+        """
         if not data:
+            # Did not get any data, position does not change.
             return position
+
+        # Calculate the width and height in pixels, that the text will use.
         text_size: Tuple[int, int] = self._font.getsize(data)
 
         logger.debug(
@@ -62,21 +75,31 @@ class Canvas:
             spacer = linewidth / text_size[0]
             if spacer > 1.0:
                 for c in data:
-                    self._ctx.text(
-                        position, c, font=self._font, fill=self.fill)
-                    position = (position[0] + self._font.getsize(c)
-                                [0] * min(spacer, max_spacing), position[1])
+                    self._ctx.text(position,
+                                   c,
+                                   font=self._font,
+                                   fill=self.fill)
+                    position = (
+                        position[0] +
+                        self._font.getsize(c)[0] * min(spacer, max_spacing),
+                        position[1])
             else:
                 self._ctx.text(position, data, font=self._font, fill=self.fill)
                 position = (position[0] + text_size[0], position[1])
         elif justify == Justify.Right:
-            self._ctx.text((position[0] + linewidth - text_size[0],
-                           position[1]), data, font=self._font, fill=self.fill)
+            self._ctx.text(
+                (position[0] + linewidth - text_size[0], position[1]),
+                data,
+                font=self._font,
+                fill=self.fill)
             position = (position[0] + text_size[0], position[1])
 
         elif justify == Justify.Center:
-            self._ctx.text((position[0] + (linewidth - text_size[0]) // 2,
-                           position[1]), data, font=self._font, fill=self.fill)
+            self._ctx.text(
+                (position[0] + (linewidth - text_size[0]) // 2, position[1]),
+                data,
+                font=self._font,
+                fill=self.fill)
             position = (position[0] + text_size[0], position[1])
         else:
             self._ctx.text(position, data, font=self._font, fill=self.fill)
@@ -84,10 +107,13 @@ class Canvas:
 
         return position
 
-    def compose(self, overlay: Image.Image, outputsize: Optional[Tuple[int, int]] = None) -> Image.Image:
+    def compose(self,
+                overlay: Image.Image,
+                outputsize: Optional[Tuple[int, int]] = None) -> Image.Image:
         out = self.background_image.copy()
         text_layer = ImageChops.overlay(
-            overlay, self.background_image.copy().convert('RGB'))
+            overlay,
+            self.background_image.copy().convert('RGB'))
         mask_layer = text_layer.copy()
         mask_layer = mask_layer.convert('L')
         mask_layer = ImageChops.invert(mask_layer)

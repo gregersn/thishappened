@@ -7,7 +7,7 @@ from thishappened.renderer.types import BlankLineData, CodeSpanData, DocumentDat
 
 from thishappened.renderer.canvas import Canvas, Justify
 
-from thishappened.renderer.utils import text_warp
+from thishappened.renderer.utils import text_warp, text_grab
 
 import logging
 
@@ -34,24 +34,25 @@ class MDRenderer():
     style: PageStyle
     canvas: Canvas
 
-    def __init__(self, input: DocumentData,
+    def __init__(self,
+                 input: DocumentData,
                  output: Path = Path('output.png'),
-                 # outputsize: Tuple[int, int] = (800, 1200),
                  lang: str = 'en',
                  style: PageStyle = PageStyle()):
-        self._input = input
+        self._input: DocumentData = input
         self._page: int = 0
         self._column: int = 0
         self._line: int = 0
         self._output: Path = output
-        self._lang = lang
-        self.style = style
+        self._lang: str = lang
+        self.style: PageStyle = style
         self.position: Tuple[int, int] = (0, 0)
         self.block_start: Tuple[int, int] = self.position
 
         self.init_fonts()
 
         self.line_width = self.style.calculate_line_width(self.font.getsize)
+        print(f"Got line width: {self.line_width}")
 
         if self.style.background is not None:
             self.background_image = Image.open(
@@ -61,8 +62,9 @@ class MDRenderer():
             self.background_image = self.background_image.resize(
                 self.style.outputsize, box=(0, 0, t[0], t[1]))
         else:
-            self.background_image = Image.new(
-                'RGB', size=self.style.outputsize, color=(255, 255, 255))
+            self.background_image = Image.new('RGBA',
+                                              size=self.style.outputsize,
+                                              color=(255, 255, 255, 255))
 
         self.canvas = Canvas(self.background_image.size)
         self.canvas.background(self.background_image)
@@ -72,13 +74,13 @@ class MDRenderer():
         #     "RGB", self.background_image.size, (255, 255, 255))
 
     def init_fonts(self):
-        t_font = ImageFont.truetype(
-            str(self.style.get_font()), self.style.text_size)
+        t_font = ImageFont.truetype(str(self.style.get_font()),
+                                    self.style.text_size)
 
         self.style.size_fit(t_font.getsize)
         logger.debug(f"Adjusting main font size to {self.style.text_size}")
-        self.font = ImageFont.truetype(
-            str(self.style.get_font()), self.style.text_size)
+        self.font = ImageFont.truetype(str(self.style.get_font()),
+                                       self.style.text_size)
 
     def render(self):
         outfilename = "{}{:03d}{}"
@@ -96,8 +98,8 @@ class MDRenderer():
         out = self.canvas.get()
 
         if self._page > 0:
-            filename = outfilename.format(
-                self._output.stem, self._page, self._output.suffix)
+            filename = outfilename.format(self._output.stem, self._page,
+                                          self._output.suffix)
             print("Saving...{}".format(filename))
             out.save(filename)
         else:
@@ -107,8 +109,8 @@ class MDRenderer():
     def start_page(self):
         self.canvas.start_page()
         self.canvas.font(self.font)
-        self.position = (
-            self.style.margin[Margin.left.value], self.style.margin[Margin.top.value])
+        self.position = (self.style.margin[Margin.left.value],
+                         self.style.margin[Margin.top.value])
         logger.debug(
             f"New position: {self.position}, block start: {self.block_start}")
         self.block_start = self.position
@@ -119,8 +121,10 @@ class MDRenderer():
             self.end_page()
         else:
             self._column += 1
-            self.position = (self.style.margin[Margin.left.value] + self._column * (self.line_width // self.style.columns + self.style.column_spacing),
-                             self.block_start[1])
+            self.position = (self.style.margin[Margin.left.value] +
+                             self._column *
+                             (self.line_width // self.style.columns +
+                              self.style.column_spacing), self.block_start[1])
 
     def end_page(self):
         logger.debug("Ending page")
@@ -157,8 +161,11 @@ class MDRenderer():
 
     def render_thematic_break(self, el: Any):
         logger.info("Render thematic break")
-        self.render_raw_text(
-            {'element': 'raw_text', 'children': '--------------------', 'escape': False})
+        self.render_raw_text({
+            'element': 'raw_text',
+            'children': '--------------------',
+            'escape': False
+        })
 
     def render_blank_line(self, data: BlankLineData):
         logger.info("Render blank line")
@@ -167,8 +174,8 @@ class MDRenderer():
         self.render_line_break({'element': 'line_break', 'soft': False})
 
     def translate(self, offset: Tuple[int, int]):
-        self.position = (self.position[0] +
-                         offset[0], self.position[1] + offset[1])
+        self.position = (self.position[0] + offset[0],
+                         self.position[1] + offset[1])
         logger.debug(
             f"New position: {self.position}, block start: {self.block_start}")
 
@@ -181,24 +188,35 @@ class MDRenderer():
         logger.info("Render line break")
         lh = self.font.getsize('A')[1]
         if not data['soft']:
-            self.move_to(
-                (self.style.margin[Margin.left.value] + self._column * (self.line_width // self.style.columns + self.style.column_spacing), self.position[1] + lh))
+            self.move_to((self.style.margin[Margin.left.value] + self._column *
+                          (self.line_width // self.style.columns +
+                           self.style.column_spacing), self.position[1] + lh))
 
     def render_paragraph(self, data: ParagraphData):
         logger.info("Render paragraph")
         self.font_size = self.style.text_size
 
+        if self.style.paragraph == 'Indent':
+            self.line("    ")
+        elif self.style.paragraph == 'Newline':
+            pass
+        elif self.style.paragraph:
+            raise NotImplementedError(
+                f"Paragraph style not implemented for style {self.style.paragraph}"
+            )
+
         for child in data['children']:
             self.render_element(child)
 
-        self.render_line_break({'element': 'line_break', 'soft': False})
+        if self.style.paragraph == "Newline":
+            self.render_line_break({'element': 'line_break', 'soft': False})
 
     def render_emphasis(self, data: EmphasisData):
         logger.info("Render emphasis")
         prev_font = self.font
 
-        self.font = ImageFont.truetype(
-            str(self.style.get_font('italic')), self.font_size)
+        self.font = ImageFont.truetype(str(self.style.get_font('italic')),
+                                       self.font_size)
 
         for child in data['children']:
             self.render_element(child)
@@ -209,8 +227,8 @@ class MDRenderer():
         logger.info("Render strong emphasis")
         prev_font = self.font
 
-        self.font = ImageFont.truetype(
-            str(self.style.get_font('bold')), self.font_size)
+        self.font = ImageFont.truetype(str(self.style.get_font('bold')),
+                                       self.font_size)
 
         for child in data['children']:
             self.render_element(child)
@@ -223,8 +241,8 @@ class MDRenderer():
         self.font_size = self.style.header_size[level - 1]
         prev_font = self.font
 
-        self.font = ImageFont.truetype(
-            str(self.style.get_font()), self.font_size)
+        self.font = ImageFont.truetype(str(self.style.get_font()),
+                                       self.font_size)
 
         for child in data['children']:
             self.render_element(child)
@@ -236,34 +254,49 @@ class MDRenderer():
         logger.info("Render raw text")
         logger.debug(repr(data['children']))
         self.canvas.font(self.font)
-        text = text_warp(data['children'], (self.style.linelength // self.style.columns) *
-                         self.style.text_size // self.font_size)
+        indent = 4 if self.style.paragraph == 'Indent' else 0
+        text, rest = text_grab(
+            data['children'],
+            (((self.style.linelength - indent) // self.style.columns) *
+             self.style.text_size // self.font_size))
 
-        self.line(text[0])
+        self.line(text)
 
         # If there is more than one line, we need some line breaks and stuff.
         new_col = False
-        for line in text[1:]:
+        while rest:
+            text, rest = text_grab(
+                rest, (((self.style.linelength) // self.style.columns) *
+                       self.style.text_size // self.font_size))
             if not new_col:
-                self.render_line_break(
-                    {'element': 'line_break', 'soft': False})
+                self.render_line_break({
+                    'element': 'line_break',
+                    'soft': False
+                })
             new_col = False
-            new_col = self.line(line)
+            new_col = self.line(text)
 
     def line(self, text: str):
         logger.debug(
-            f"Add text line: {text}, position: {self.position}, block start: {self.block_start}, justified: {self.style.justify}")
-        npos = self.canvas.text(
-            text, self.position, self.line_width // self.style.columns, justify=Justify[self.style.justify], variation=self.style.variation)
+            f"Add text line: {text}, position: {self.position}, block start: {self.block_start}, justified: {self.style.justify}"
+        )
+        npos = self.canvas.text(text,
+                                self.position,
+                                self.line_width // self.style.columns,
+                                justify=Justify[self.style.justify],
+                                variation=self.style.variation)
 
-        if (self.position[1] + self.font_size * 2 + self.style.margin[Margin.bottom.value]) >= self.style.outputsize[1]:
+        if (self.position[1] + self.font_size * 2 +
+                self.style.margin[Margin.bottom.value]
+            ) >= self.style.outputsize[1]:
             logger.debug("Bottom of page reached")
             self.end_column()
             return True
         else:
             self.position = npos
             logger.debug(
-                f"New position: {self.position}, block start: {self.block_start}")
+                f"New position: {self.position}, block start: {self.block_start}"
+            )
 
     def render_list_item(self, data: ListItemData):
         logger.info("Render list item")
@@ -276,9 +309,15 @@ class MDRenderer():
         logger.debug(data)
         for idx, child in enumerate(data['children']):
             if data['ordered']:
-                self.render_raw_text(
-                    {'element': 'raw_text', 'children': f"{idx + data['start']}. ", 'escape': True})
+                self.render_raw_text({
+                    'element': 'raw_text',
+                    'children': f"{idx + data['start']}. ",
+                    'escape': True
+                })
             else:
-                self.render_raw_text(
-                    {'element': 'raw_text', 'children': f"{data['bullet']} ", 'escape': True})
+                self.render_raw_text({
+                    'element': 'raw_text',
+                    'children': f"{data['bullet']} ",
+                    'escape': True
+                })
             self.render_element(child)
