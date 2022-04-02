@@ -3,7 +3,12 @@ from PIL import Image, ImageFont
 
 from typing import Any, Literal, Tuple, TypedDict, cast
 from thishappened.renderer.page import Margin, PageStyle
-from thishappened.renderer.types import BlankLineData, CodeSpanData, DocumentData, EmphasisData, HeadingData, LineBreakData, ListData, ListItemData, MDElement, ParagraphData, RawTextData, StrongEmphasisData
+from thishappened.renderer.types import (BlankLineData, CodeSpanData,
+                                         DocumentData, EmphasisData,
+                                         HeadingData, LineBreakData, ListData,
+                                         ListItemData, MDElement,
+                                         ParagraphData, RawTextData,
+                                         StrongEmphasisData, LiteralData)
 
 from thishappened.renderer.canvas import Canvas, Justify
 
@@ -82,7 +87,7 @@ class MDRenderer():
         self.font = ImageFont.truetype(str(self.style.get_font()),
                                        self.style.text_size)
 
-    def render(self):
+    def render(self, output: Path = Path(".")):
         outfilename = "{}{:03d}{}"
 
         logger.debug(
@@ -100,10 +105,11 @@ class MDRenderer():
         if self._page > 0:
             filename = outfilename.format(self._output.stem, self._page,
                                           self._output.suffix)
-            print("Saving...{}".format(filename))
-            out.save(filename)
+            print(f"Saving...{output / filename}")
+            out.save(output / filename)
         else:
-            out.save(self._output)
+            print(f"Saving...{output / self._output}")
+            out.save(output / self._output)
         # out.show()
 
     def start_page(self):
@@ -140,7 +146,7 @@ class MDRenderer():
             logger.debug(el)
             for child in el.get('children', []):
                 if isinstance(child, str):
-                    print("There was an unexpected string")
+                    print(f"There was an unexpected string: '{child}'")
                 else:
                     self.render_element(child)
 
@@ -191,6 +197,9 @@ class MDRenderer():
             self.move_to((self.style.margin[Margin.left.value] + self._column *
                           (self.line_width // self.style.columns +
                            self.style.column_spacing), self.position[1] + lh))
+
+    def render_literal(self, data: LiteralData):
+        self.render_raw_text(data)
 
     def render_paragraph(self, data: ParagraphData):
         logger.info("Render paragraph")

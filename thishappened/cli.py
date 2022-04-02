@@ -1,4 +1,4 @@
-from typing import Any, Dict, Union, cast
+from typing import Any, Dict, Optional, Union, cast
 import click
 from pathlib import Path
 import marko
@@ -12,7 +12,13 @@ from thishappened.renderer.types import DocumentData
 
 @click.command()
 @click.argument('markdown', type=click.Path(path_type=Path, exists=True))
-def main(markdown: Path):
+@click.option('--output',
+              type=click.Path(path_type=Path,
+                              file_okay=False,
+                              dir_okay=True,
+                              exists=True),
+              default=Path("."))
+def main(markdown: Path, output: Path = Path('.')):
     """Render markdown file to an image.
     
     MARKDOWN: Path to markdown file.
@@ -55,7 +61,7 @@ def main(markdown: Path):
                           markdown.with_suffix(".png"),
                           lang='no',
                           style=style)
-    renderer.render()
+    renderer.render(output)
 
 
 if __name__ == "__main__":

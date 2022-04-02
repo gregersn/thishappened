@@ -1,8 +1,13 @@
-
 from typing import Any, Dict, List, Literal, TypedDict, Union
 
 
 class RawTextData(TypedDict):
+    element: Literal['raw_text']
+    children: str
+    escape: bool
+
+
+class LiteralData(TypedDict):
     element: Literal['raw_text']
     children: str
     escape: bool
@@ -61,6 +66,6 @@ class CodeSpanData(TypedDict):
     element: Literal['code_span']
 
 
-MDElement = Union[RawTextData, HeadingData,
-                  BlankLineData, EmphasisData, StrongEmphasisData,
-                  ListItemData, ListData, ParagraphData, LineBreakData, CodeSpanData]
+MDElement = Union[RawTextData, HeadingData, BlankLineData, EmphasisData,
+                  StrongEmphasisData, ListItemData, ListData, ParagraphData,
+                  LineBreakData, CodeSpanData]
