@@ -2,3 +2,8 @@ assets/
 *.jpg
 *.png
 .vscode/
+*.pyc
+__pycache__/
+.venv/
+.pytest_cache/
+*.egg-info/
