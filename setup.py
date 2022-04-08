@@ -10,7 +10,7 @@ setup(
     author_email="gregersn@gmail.com",
     description="A utility to convert markdown to images",
     long_description=long_description,
-    long_description_content_type="text/markdown",    
+    long_description_content_type="text/markdown",
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent"

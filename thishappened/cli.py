@@ -10,6 +10,7 @@ from thishappened import Styling, load_asset
 from thishappened.renderer.types import DocumentData
 
 
+
 @click.command()
 @click.argument('markdown', type=click.Path(path_type=Path, exists=True))
 @click.option('--output',
